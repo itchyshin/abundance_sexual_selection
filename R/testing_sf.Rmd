@@ -1,0 +1,27 @@
+```{r}
+library(ggplot2)
+library(sf)
+library(dplyr)
+
+unzip("Map Files/AUS_adm.zip", junkpaths = TRUE, exdir = "Map Files")
+
+adm_zones <- sf::read_sf("Map Files/AUS_adm1.shp")
+adm_zones
+
+states <- dplyr::filter(adm_zones,TYPE_1 == "State")
+states
+
+australia <- ggplot(adm_zones) + geom_sf()
+print(australia)
+
+NAME_1 <- c(NA, "New South Wales", NA, NA, "Queensland", "South Australia", "Tasmania", "Victora", "Western Australia", "Northern Territory", "Australian Captial Territory")
+df.values <- c(NA, 1.54, NA, NA, 3.234, 2.343, 2.005, 1.956, 2.666, 3.67, 1.68)
+play.data <- data.frame(NAME_1, df.values)
+
+australia.data <- dplyr::inner_join(play.data, adm_zones, by = "NAME_1")
+australia.data
+
+map <- ggplot(australia.data) + geom_sf()
+print(map)
+```
+

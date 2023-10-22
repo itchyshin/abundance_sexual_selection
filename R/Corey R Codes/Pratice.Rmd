@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+mcqueen<-read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+##joining and cleaning ebird datasets
+
+ebird <- inner_join(ebird_state_code_total_checklists, ebird_relative_abundance_summary, by="STATE_CODE")
+ebird <- mutate(ebird, relative_abund = mean_abund / N)
+ebird <- mutate(ebird, log.relative_abund = log(relative_abund))
+mcqueen <- mutate(mcqueen,log.sexual_dichromatism = log(sexual_dichromatism))
+ebird$SCIENTIFIC_NAME<-str_replace_all(ebird$SCIENTIFIC_NAME, c(" " = "_"))
+ebird<-rename(ebird,TipLabel=SCIENTIFIC_NAME)
+
+##joining ebird and mcqueen
+
+ebird.mcqueen <- inner_join(ebird,mcqueen,by="TipLabel")
+
+##correlation + ginraph
+test_list <- c("United States", "France", "Portugal", "Costa Rica", "Japan", "Australia",
+               "Macedonia", "Panama", "Indonesia")
+
+ebird.mcqueen2 <- ebird.mcqueen %>%
+  dplyr::filter(COUNTRY %in% test_list) %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  group_by(COUNTRY, TipLabel) %>%
+  summarise(mean_log.abund=log(mean(relative_abund)),
+            mean_color=mean(sexual_dichromatism),
+            sqrt_abund=sqrt(mean(relative_abund)))
+  
+ebird.mcqueen3 <- ebird.mcqueen %>%
+  dplyr::filter(COUNTRY == "New Zealand") %>%
+  dplyr::filter(Number_obs > 500) %>%
+  group_by(STATE_CODE, TipLabel) %>%
+  summarise(mean_log.abund=log(mean(relative_abund)),
+            mean_color=mean(sexual_dichromatism),
+            sqrt_abund=sqrt(mean(relative_abund)))
+
+plot.dichromatism<-ggplot(ebird.mcqueen3,aes(
+  log(mean_color),mean_log.abund))+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE,col="red")+
+  facet_wrap(~STATE_CODE, scales="free")
+print(plot.dichromatism)
+
+
+dichromatism=ebird.mcqueen$sexual_dichromatism
+relative_abundance=ebird.mcqueen$log.relative_abund
+cor(dichromatism,relative_abundance)
+```
+

@@ -1,0 +1,23 @@
+```{r}
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+fixed.names <- read.csv(file = "Data from eBird/FIXED_manual_matched_tips_with_clements.csv", header = TRUE)
+ebird_rel_abund <- readRDS("Data/relative_grids_summary_v2.RDS")
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# need to match species from eBird with McQueen
+
+data_joined <- ebird_rel_abund %>%
+  left_join(., McQueen, by="TipLabel")
+
+# now get rid of non-data
+
+data_joined2 <- data_joined %>%
+  dplyr::filter(complete.cases(sexual_dichromatism))
+
+length(unique(data_joined2$ebird_COMMON_NAME))
+
+saveRDS(data_joined2, "Data/grid_ebird_joined_with_mcqueen.RDS")
+```
+

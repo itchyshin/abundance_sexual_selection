@@ -1,0 +1,112 @@
+```{r}
+dale <- read.csv(file="Data/Dale.csv", header=TRUE)
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+##Calculating Euclidean Distance
+
+dale.clean <- dale[ ,c(2,6,7,8,9,10,11)]
+dale.gender.0 <- filter(dale.clean, gender==0)
+dale.gender.1 <- filter(dale.clean, gender==1)
+
+#crown distance
+
+dale.gender.0.crown <- filter(dale.gender.0, patch == "crown")
+dale.gender.1.crown <- filter(dale.gender.1, patch == "crown")
+
+dale.crown.distance <- full_join(dale.gender.0.crown, dale.gender.1.crown, by = "WJSpecID")
+dale.crown.distance <- mutate(dale.crown.distance, distance.crown = 
+                                sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+#forehead distance
+
+dale.gender.0.forehead <- filter(dale.gender.0, patch == "forehead")
+dale.gender.1.forehead <- filter(dale.gender.1, patch == "forehead")
+
+dale.forehead.distance <- full_join(dale.gender.0.forehead, dale.gender.1.forehead, by = "WJSpecID")
+dale.forehead.distance <- mutate(dale.forehead.distance, distance.forehead = 
+                                   sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+#lowerbreast distance
+
+dale.gender.0.lowerbreast <- filter(dale.gender.0, patch == "lower_breast")
+dale.gender.1.lowerbreast <- filter(dale.gender.1, patch == "lower_breast")
+
+dale.lowerbreast.distance <- full_join(dale.gender.0.lowerbreast, dale.gender.1.lowerbreast, by = "WJSpecID")
+dale.lowerbreast.distance <- mutate(dale.lowerbreast.distance, distance.lowerbreast = 
+                                      sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+#nape distance
+
+dale.gender.0.nape <- filter(dale.gender.0, patch == "nape")
+dale.gender.1.nape <- filter(dale.gender.1, patch == "nape")
+
+dale.nape.distance <- full_join(dale.gender.0.nape, dale.gender.1.nape, by = "WJSpecID")
+dale.nape.distance <- mutate(dale.nape.distance, distance.nape = 
+                               sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+#throat distance
+
+dale.gender.0.throat <- filter(dale.gender.0, patch == "throat")
+dale.gender.1.throat <- filter(dale.gender.1, patch == "throat")
+
+dale.throat.distance <- full_join(dale.gender.0.throat, dale.gender.1.throat ,by = "WJSpecID")
+dale.throat.distance <- mutate(dale.throat.distance, distance.throat = 
+                                 sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+#upperbreast distance
+
+dale.gender.0.upperbreast <- filter(dale.gender.0, patch == "upper_breast")
+dale.gender.1.upperbreast <- filter(dale.gender.1, patch == "upper_breast")
+
+dale.upperbreast.distance <- full_join(dale.gender.0.upperbreast, dale.gender.1.upperbreast, by = "WJSpecID")
+dale.upperbreast.distance <- mutate(dale.upperbreast.distance, distance.upperbreast = 
+                                      sqrt(((red.x-red.y)^2) + ((green.x-green.y)^2) + ((blue.x-blue.y)^2)))
+
+##mashing table together
+
+total.distance<-bind_cols(
+    dale.crown.distance,
+    dale.forehead.distance,
+    dale.lowerbreast.distance,
+    dale.nape.distance,
+    dale.throat.distance,
+    dale.upperbreast.distance)
+
+total.distance.clean <- total.distance[,c(1,7,14,28,42,56,70,84)]
+total.distance.clean <- rename(total.distance.clean, TipLabel = TipLabel.x)
+total.distance.clean <- mutate(total.distance.clean, Average_Distance=(
+  distance.crown +
+  distance.forehead +
+  distance.lowerbreast +
+  distance.nape +
+  distance.throat +
+  distance.upperbreast)/6)
+
+
+##Making Table with both distances
+
+McQueen.clean <- McQueen[,c(1,6)]
+dale.mcqueen.distance <- inner_join(total.distance.clean, McQueen.clean, by="TipLabel")
+dale.mcqueen.distance <- rename(dale.mcqueen.distance, McQueen_Distance = sexual_dichromatism)
+save(dale.mcqueen.distance, file = "Data Frames/Gender Difference Dale Mcqueen")
+
+
+##Making Graph and correlation
+
+model <- lm(Average_Distance ~ McQueen_Distance, data = dale.mcqueen.distance)
+summary(model)
+
+plot <- ggplot(dale.mcqueen.distance,aes(McQueen_Distance,Average_Distance)) + 
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE,col="red")
+print(plot)
+
+dale.data = dale.mcqueen.distance$Average_Distance
+mcqueen.data = dale.mcqueen.distance$McQueen_Distance
+cor(dale.data, mcqueen.data)
+```
+
+

@@ -1,0 +1,65 @@
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+McQueen <- mutate(McQueen,log.sexual_dichromatism = log(sexual_dichromatism))
+
+ebird_state <- readRDS("Data from eBird/ebird_state_code_total_checklists.RDS")
+ebird_abundance <- readRDS("Data from eBird/ebird_relative_abundance_summary.RDS")
+
+
+##joining and cleaning ebird datasets
+
+ebird <- inner_join(ebird_state, ebird_abundance, by="STATE_CODE") 
+ebird <- mutate(ebird, relative_abund = mean_abund / N)
+ebird <- mutate(ebird, log.relative_abund = log(relative_abund))
+ebird$SCIENTIFIC_NAME <- str_replace_all(ebird$SCIENTIFIC_NAME, c(" " = "_"))
+ebird <- rename(ebird,TipLabel = SCIENTIFIC_NAME)
+
+##joining ebird and mcqueen
+
+ebird.mcqueen <- inner_join(ebird, McQueen, by = "TipLabel")
+
+##making graphs
+
+# observing countries
+
+country_list <- c("United States", "France", "Portugal", "Costa Rica", "Japan", "Australia",
+               "Macedonia", "Panama", "Indonesia")
+
+ebird.mcqueen.list <- ebird.mcqueen %>%
+  dplyr::filter(COUNTRY %in% country_list) %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  group_by(COUNTRY, TipLabel) %>%
+  summarise(mean_log.abund = log(mean(relative_abund)),
+            mean_color = mean(sexual_dichromatism),
+            sqrt_abund = sqrt(mean(relative_abund)))
+  
+#obseving states within a country
+
+ebird.mcqueen.country <- ebird.mcqueen %>%
+  dplyr::filter(COUNTRY == "Australia") %>%
+  dplyr::filter(Number_obs > 100) %>%
+  group_by(STATE_CODE, TipLabel) %>%
+  summarise(mean_log.abund = log(mean(relative_abund)),
+            mean_color = mean(sexual_dichromatism),
+            sqrt_abund = sqrt(mean(relative_abund)))
+
+#plotting graph
+
+plot <- ggplot(ebird.mcqueen.country, aes(
+  log(mean_color), mean_log.abund)) +
+  geom_point() +
+  geom_smooth(method="lm",se=FALSE,col="red") +
+  facet_wrap(~ STATE_CODE, scales="free")
+
+print(plot)
+
+anova(lm(mean_log.abund ~ mean_color + STATE_CODE, data = ebird.mcqueen.country))
+```
+

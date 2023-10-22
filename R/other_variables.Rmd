@@ -1,0 +1,123 @@
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+dale <- read.csv(file="Data/Dale.csv", header=TRUE)
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+load("Data Frames/eBird McQueen Data")
+load("Data Frames/Gender Difference Dale Mcqueen")
+load("Data Frames/eBird")
+plumage.scores <- read.csv("Data/plumage_scores.csv")
+
+plumage.ebird.mcqueen <- left_join(ebird.mcqueen, plumage.scores)
+save(plumage.ebird.mcqueen, file = "Data Frames/Plumage eBird McQueen Data")
+```
+
+```{r}
+## investigating body mass
+
+plumage.ebird.mcqueen %>%
+  ggplot(aes(Female_plumage_score, Male_plumage_score, col=log_mass)) +
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE, col = "red") -> mass.1
+mass.1
+
+plumage.ebird.mcqueen %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, log_mass, TipLabel) %>%
+  gather(gender, plumage_score, -log_mass,- TipLabel) %>%
+  ggplot(aes(plumage_score, log_mass))+
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE, col = "red") +
+  facet_wrap(~gender) -> mass.2
+mass.2
+
+plumage.ebird.mcqueen %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, log_mass, TipLabel, log.relative_abund, sexual_dichromatism) %>%
+  ggplot(aes(sexual_dichromatism, log_mass)) +
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE,col = "red") -> mass.3
+mass.3
+
+plumage.ebird.mcqueen %>%
+  dplyr::filter(COUNTRY == "United States") %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, log_mass, TipLabel, log.relative_abund, sexual_dichromatism,   
+         STATE_CODE) %>%
+  ggplot(aes(log_mass, log.relative_abund, col = sexual_dichromatism))+
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE,col = "red") +
+  facet_wrap(~STATE_CODE) -> mass.4
+mass.4
+```
+
+```{r}
+## investigating sexual selection
+
+plumage.ebird.mcqueen %>%
+  na.omit() %>%
+  ggplot(aes(Female_plumage_score, Male_plumage_score, col = Sexual_selection_ppca)) +
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE, col = "red") -> selection.1
+selection.1
+
+plumage.ebird.mcqueen %>%
+  na.omit() %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, Sexual_selection_ppca, TipLabel) %>%
+  gather(gender, plumage_score, -Sexual_selection_ppca,- TipLabel) %>%
+  ggplot(aes(plumage_score, Sexual_selection_ppca))+
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE, col = "red") +
+  facet_wrap(~gender) -> selection.2
+selection.2
+
+plumage.ebird.mcqueen %>%
+  na.omit() %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, Sexual_selection_ppca, TipLabel, log.relative_abund, 
+         sexual_dichromatism) %>%
+  ggplot(aes(sexual_dichromatism, Sexual_selection_ppca)) +
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE,col = "red") -> selection.3
+selection.3
+
+plumage.ebird.mcqueen %>%
+  na.omit() %>%
+  dplyr::filter(COUNTRY == "United States") %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score, Male_plumage_score, Sexual_selection_ppca, TipLabel, log.relative_abund, 
+         sexual_dichromatism, STATE_CODE) %>%
+  ggplot(aes(Sexual_selection_ppca, log.relative_abund, col = sexual_dichromatism))+
+  geom_point() +
+  geom_smooth(method = "lm", se=FALSE,col = "red") +
+  facet_wrap(~STATE_CODE) -> selection.4
+selection.4
+```
+```{r}
+
+###next task: create code that makes linear models for each state code and makes a summary for it
+
+summary(lm(log.relative_abund ~ log_mass*sexual_dichromatism + STATE_CODE, data = plumage.ebird.mcqueen))
+summary(lm(log.relative_abund ~ sexual_dichromatism, data = plumage.ebird.mcqueen))
+
+# mixed model
+library(lme4)
+
+
+model <- lmer(log.relative_abund ~ log_mass*scale(sexual_dichromatism) + (1+scale(sexual_dichromatism)|STATE_CODE), data = plumage.ebird.mcqueen)
+summary(model)
+hist(ranef(model)$STATE_CODE[,2])
+
+
+hist(plumage.ebird.mcqueen$log.relative_abund)
+
+plumage.ebird.mcqueen %>%
+  na.omit() %>%
+  dplyr::filter(COUNTRY == "Australia") -> data.australia 
+
+```
+

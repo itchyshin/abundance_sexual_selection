@@ -1,0 +1,161 @@
+```{r}
+dale <- read.csv(file="Data/Dale.csv", header=TRUE)
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+load("Data Frames/eBird McQueen Data")
+load("Data Frames/Gender Difference Dale Mcqueen")
+load("Data Frames/eBird")
+plum <- read.csv("Data/plumage_scores.csv")
+```
+
+
+
+```{r}
+all<-left_join(ebird.mcqueen,plum)
+
+all %>%
+ # filter(STATE_CODE=="US-CA") %>%
+  ggplot(aes(Female_plumage_score,Male_plumage_score,col=log_mass))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red") -> plot.brown
+names(all)
+
+all %>%
+   dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score,Male_plumage_score,log_mass,TipLabel) %>%
+  gather(gender,plumage_score,-log_mass,-TipLabel) %>%
+  ggplot(aes(plumage_score,log_mass))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red") +
+  facet_wrap(~gender) ->plot.brown.1
+names(all)
+
+all %>%
+  dplyr::filter(COUNTRY == "United States") %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score,Male_plumage_score,log_mass,TipLabel,log.relative_abund,sexual_dichromatism) %>%
+  #gather(gender,plumage_score,-log_mass,-TipLabel) %>%
+  ggplot(aes(sexual_dichromatism,log_mass))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red") -> plot.brown.2
+
+all %>%
+  dplyr::filter(COUNTRY == "United States") %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  select(Female_plumage_score,Male_plumage_score,log_mass,TipLabel,log.relative_abund,sexual_dichromatism, STATE_CODE) %>%
+ # gather(gender,plumage_score,-log_mass,-TipLabel) %>%
+  ggplot(aes(log_mass,log.relative_abund, col = sexual_dichromatism))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red") +
+  facet_wrap(~STATE_CODE) -> plot.brown.3
+
+
+summary(lm(log.relative_abund~log_mass+Female_plumage_score+Male_plumage_score,data=all))
+
+plot.brown
+plot.brown.1
+plot.brown.2
+plot.brown.3
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+
+#adding brown value
+
+dale$r <- as.numeric(131)
+dale$b <- as.numeric(131)
+dale$g <- as.numeric(116)
+
+#calculating median of patches
+
+dale.median <- dale %>%
+  group_by(WJSpecID, patch, TipLabel,gender, r, b, g) %>%
+  summarise(med.red = median(red),
+            med.green = median(green),
+            med.blue = median(blue))
+
+#calculating distance from brown
+
+dale.median <- mutate(
+  dale.median,distance.brown = sqrt(
+    ((med.red - r)^2)+
+    ((med.green - g)^2)+
+    ((med.blue - b)^2)))
+
+dale.brown <- dale.median %>%
+  group_by(TipLabel,gender) %>%
+  summarise(distance.brown.1 = mean(distance.brown),distance.brown.max = max(distance.brown))
+save(dale.brown, file = "Data Frames/Dale Brown Median")
+
+#calculating max distance of patches
+
+dale.max.1 <- dale %>%
+  group_by(WJSpecID, TipLabel, gender, r, g, b) %>%
+  summarise(max.red = max(red),
+            max.blue = max(blue),
+            max.green = max(green))
+
+#checking relative abundance
+
+
+
+dale.brown.ebird <- inner_join(dale.brown, ebird.mcqueen, by =  "TipLabel")
+
+dale.brown.ebird.1 <- dale.brown.ebird %>%
+  dplyr::filter(COUNTRY == "United States") %>%
+  dplyr::filter(Number_obs > 1000) %>%
+  group_by(STATE_CODE, TipLabel, gender) %>%
+  summarise(mean_log.abund = log(mean(relative_abund)),
+            mean_color = mean(distance.brown.1),
+            sqrt_abund = sqrt(mean(relative_abund)))
+
+dale.brown.ebird.1 %>%
+  filter(STATE_CODE=="US-CA") %>%
+  ggplot(aes(log(mean_color),mean_log.abund))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red")+
+  facet_wrap(gender~STATE_CODE, scales = "free")->plot.brown
+
+
+dale.brown.ebird.1 %>%
+  filter(STATE_CODE=="US-CA") %>%
+  select(gender,mean_color,mean_log.abund)%>%
+  spread(gender,mean_color)%>%
+  rename("female"="0","male"="1") %>%
+  ggplot(aes(female,male,col=mean_log.abund))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE,col = "red")+
+  facet_wrap(gender~STATE_CODE, scales = "free")->plot.brown
+```
+
+
+```{r}
+
+
+#correlation between male-female distance
+
+all.distance <- inner_join(dale.mcqueen.distance, dale.brown, by="TipLabel")
+plot <- ggplot(all.distance,aes(Average_Distance, distance.brown.1)) + 
+  geom_point() + 
+  geom_smooth(method="lm",se=FALSE,col="red")
+  facet_wrap(gender~STATE_CODE, scales="free")
+print(plot)
+
+#correlation between male-female distance
+
+all.distance <- inner_join(dale.mcqueen.distance, dale.brown, by="TipLabel")
+plot.1 <- ggplot(all.distance,aes(Average_Distance, log(distance.brown.1)))+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE,col="red")+
+  facet_wrap(~gender, scales="free")
+print(plot.1)
+
+dale.data = all.distance$Average_Distance
+brown.data = all.distance$distance.brown.1
+mcqueen.data = all.distance$McQueen_Distance
+cor(dale.data,brown.data)
+```
+

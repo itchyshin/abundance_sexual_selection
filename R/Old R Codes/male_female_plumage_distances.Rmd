@@ -1,0 +1,79 @@
+```{r}
+dale <- read.csv(file="Data/Dale.csv", header=TRUE)
+McQueen <- read.csv(file="Data/Seasonal_Plumage.csv",header=TRUE)
+plumage <- read.csv(file="Data/plumage_scores.csv", header = TRUE)
+load("Data Frames/eBird McQueen Data")
+load("Data Frames/Gender Difference Dale Mcqueen")
+load("Data Frames/eBird")
+load("Data Frames/Dale Brown Median")
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(stringr)
+
+#fixing ebird
+
+ebird$SCIENTIFIC_NAME <- str_replace_all(ebird$SCIENTIFIC_NAME, c(" " = "_"))
+ebird <- rename(ebird,TipLabel = SCIENTIFIC_NAME)
+
+## joining plumage data + subsetting
+
+dale.plumage <- left_join(dale, plumage, by = "TipLabel")
+dale.plumage.female <- dale.plumage %>%
+  dplyr::filter(gender == 0) %>%
+  dplyr::select(-Male_plumage_score)
+
+dale.plumage.female <- inner_join(dale.plumage.female, ebird, by = "TipLabel")
+  
+
+dale.plumage.male <- dale.plumage %>%
+  dplyr::filter(gender == 1) %>%
+  dplyr::select(-Female_plumage_score)
+
+dale.plumage.male <- inner_join(dale.plumage.male, ebird, by = "TipLabel")
+
+## graphs
+
+dale.plumage.female.plot <- dale.plumage.female %>%
+  dplyr::filter(COUNTRY == "New Zealand") %>%
+  dplyr::filter(Number_obs > 500) %>%
+  group_by(STATE_CODE, TipLabel) %>%
+  summarise(mean_log.abund=log(mean(relative_abund)),
+            mean_plumage=mean(Female_plumage_score),
+            sqrt_abund=sqrt(mean(relative_abund)))
+
+plot.plumage.female<-ggplot(dale.plumage.female.plot,aes(
+  log(mean_plumage),mean_log.abund))+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE,col="red")+
+  facet_wrap(~STATE_CODE, scales="free")
+print(plot.plumage.female)
+
+## correlation plumage x median from brown
+
+dale.brown.female <- filter(dale.brown, gender == 0)
+dale.brown.female <- inner_join(dale.brown.female, dale.plumage.female, by = "TipLabel")
+dale.brown.male <- filter(dale.brown, gender == 1)
+dale.brown.male <- inner_join(dale.brown.male, dale.plumage.male, by = "TipLabel")
+
+
+plot.female <- ggplot(dale.brown.female,aes(Female_plumage_score, distance.brown.1)) + 
+  geom_point() + 
+  geom_smooth(method="lm",se=FALSE,col="red")
+print(plot.female)
+
+plot.male <- ggplot(dale.brown.male,aes(Male_plumage_score, distance.brown.1)) + 
+  geom_point() + 
+  geom_smooth(method="lm",se=FALSE,col="red")
+print(plot.male)
+
+brown.female.data = dale.brown.female$distance.brown.1
+plumage.female.data = dale.brown.female$Female_plumage_score
+cor(brown.female.data, plumage.female.data)
+
+brown.male.data = dale.brown.male$distance.brown.1
+plumage.male.data = dale.brown.male$Male_plumage_score
+cor(brown.male.data, plumage.male.data)
+```
+
