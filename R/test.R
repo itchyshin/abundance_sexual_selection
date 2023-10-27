@@ -33,10 +33,11 @@ dat <- readRDS(here("Data","grid_ebird_by_month_joined_with_McQueen_imputed.RDS"
 # This has 1000 trees - we will use the first 100
 tree <- read.tree(here("Data", "phylo", "phy.tre"))
 
-
-tree <- tree[91:100]
-
-#tree <- tree[1:50]
+tree <- tree[1:10]
+#tree <- tree[11:20]
+#tree <- tree[21:30] 
+#tree <- tree[31:40] 
+#tree <- tree[41:50] 
 
 # distance matrix between grids
 distance_km <- readRDS(here("Data", "distance_km.RDS"))
@@ -143,9 +144,9 @@ for(i in 1:num_tree){
           mc.preschedule = FALSE, mc.cores = 18)
   
   
-  length(list1)
-  length(list2)
-  length(list3)
+  #length(list1)
+  #length(list2)
+  #length(list3)
   
   dat_ave$model1 <- list1
   dat_ave$model2 <- list2
@@ -153,10 +154,10 @@ for(i in 1:num_tree){
   
   #toc()
   
-  slower
-  system.time(dat_ave %<>% mutate(model1 = purrr::map2(data, cor_tree, poss_mod_fun1),
-                       model2 = purrr::map2(data, cor_tree, poss_mod_fun2),
-                       model3 = purrr::map2(data, cor_tree, poss_mod_fun3)))
+  #slower
+  # system.time(dat_ave %<>% mutate(model1 = purrr::map2(data, cor_tree, poss_mod_fun1),
+  #                      model2 = purrr::map2(data, cor_tree, poss_mod_fun2),
+  #                      model3 = purrr::map2(data, cor_tree, poss_mod_fun3)))
 
   # replacing NULL with NA
   null2 <- map_lgl(dat_ave$model2, ~is.null(.x) == TRUE)
@@ -226,12 +227,12 @@ for(i in 1:num_tree){
   # putting 3 models together 
   #res_list[[i]] <-list(mod_overall, mod_migrant, mod_resident) 
   
-  res_list[[i]] <- list(mod_overall, mod_migrant, mod_resident) 
+  res_list[[i]] <- list(mod_overall, mod_migrant, mod_resident)
   
 }
 
 toc()
 
-saveRDS(res_list, here("Objects", "res_list_test.RDS"))
+saveRDS(res_list, here("Data", "res_list_test.RDS"))
 
 
