@@ -33,8 +33,8 @@ dat <- readRDS(here("Data","grid_ebird_by_month_joined_with_McQueen_imputed.RDS"
 # This has 1000 trees - we will use the first 100
 tree <- read.tree(here("Data", "phylo", "phy.tre"))
 
-tree <- tree[1:10]
-#tree <- tree[11:20]
+#tree <- tree[1:10]
+tree <- tree[11:20]
 #tree <- tree[21:30] 
 #tree <- tree[31:40] 
 #tree <- tree[41:50] 
@@ -63,7 +63,7 @@ tic()
 for(i in 1:num_tree){
   
   # getting ride of trees and models every time
-  #dat_ave <- dat_ave[ ,1:2]
+  res_list_slope[[i]] <- df2
   
   # function to prepare correlation matrix
   cor_tree_fun <- function(df, tree){
@@ -85,7 +85,7 @@ for(i in 1:num_tree){
   #toc()
   
   dat_ave$cor_tree <- mclapply(dat_ave$data, cor_tree_poss, tree = tree[[i]], mc.cores = 18)
-   
+  
   # the function to fit: phylogenetic meta-analysis 
   # try “control=list(optimizer=“optim”, optmethod=“BFGS”)” if this “control=list(optimizer=“optim”, optmethod=“Nelder-Mead”)” fails
   mod_fun1 <- function(df, cor_tree){
@@ -157,9 +157,9 @@ for(i in 1:num_tree){
   
   #slower
   system.time(dat_ave %<>% mutate(model1 = purrr::map2(data, cor_tree, poss_mod_fun1),
-                       model2 = purrr::map2(data, cor_tree, poss_mod_fun2),
-                       model3 = purrr::map2(data, cor_tree, poss_mod_fun3)))
-
+                                  model2 = purrr::map2(data, cor_tree, poss_mod_fun2),
+                                  model3 = purrr::map2(data, cor_tree, poss_mod_fun3)))
+  
   # replacing NULL with NA
   null2 <- map_lgl(dat_ave$model2, ~is.null(.x) == TRUE)
   null3 <- map_lgl(dat_ave$model3, ~is.null(.x) == TRUE)
@@ -193,7 +193,7 @@ for(i in 1:num_tree){
   ) -> df2
   
   # saving df2 - we get 50 df2
-  res_list_slope[[i]] <- df2
+  # res_list_slope[[i]] <- 
   
   # spatial model 
   df2$const <- 1 # not quite sure what it means for now
@@ -236,6 +236,6 @@ for(i in 1:num_tree){
 
 toc()
 
-saveRDS(res_list_slope, here("Data", "res_list_slope1.RDS"))
-saveRDS(res_list_overall, here("Data", "res_list_overall1.RDS"))
+saveRDS(res_list_slope, here("Data", "res_list_slope2.RDS"))
+saveRDS(res_list_overall, here("Data", "res_list_overall2.RDS"))
 
