@@ -63,7 +63,7 @@ tic()
 for(i in 1:num_tree){
   
   # getting ride of trees and models every time
-  res_list_slope[[i]] <- df2
+  #dat_ave <- dat_ave[ ,1:2]
   
   # function to prepare correlation matrix
   cor_tree_fun <- function(df, tree){
@@ -193,7 +193,7 @@ for(i in 1:num_tree){
   ) -> df2
   
   # saving df2 - we get 50 df2
-  # res_list_slope[[i]] <- 
+  res_list_slope[[i]] <- df2
   
   # spatial model 
   df2$const <- 1 # not quite sure what it means for now
