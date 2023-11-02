@@ -20,9 +20,22 @@ dat %>% ungroup %>%  select("grid_id",
                             "b_resident","se_resdident") %>% 
   nest_by(grid_id) -> dat_nest
 
-dat_nest$data[[1]] %>% as.matrix %>% t %>% 
-  as.vector -> test
+# dat_nest$data[[1]] %>% as.matrix %>% t %>% 
+#   as.vector -> test
 
+array_mi_fnc <- function(data){
+  data %>% as.matrix %>% t %>% 
+    as.vector -> my_vec
+    my_array <- array(my_vec, dim = c(3, 2, 50))
+    res <- pool.mi(my_array) 
+    res
+}
+
+# possibly.... 
+poss_array_mi_fnc <- possibly(.f = array_mi_fnc, otherwise = NULL)
+
+dat_nest %>% mutate(result = purrr::map(data, poss_array_mi_fnc)) -> 
+  dat_res
 
 ####
 
