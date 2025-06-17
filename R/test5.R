@@ -238,3 +238,7 @@ toc()
 
 saveRDS(res_list_slope, here("Data", "res_list_slope5.RDS"))
 saveRDS(res_list_overall, here("Data", "res_list_overall5.RDS"))
+
+
+res_list_slope <- readRDS(here("Data", "res_list_slope5.RDS"))
+res_list_overall <- readRDS(here("Data", "res_list_overall5.RDS"))
